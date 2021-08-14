@@ -49,6 +49,7 @@ func TestMux(t *testing.T) {
 	mux.Handle("GET", "/ping", func(rw http.ResponseWriter, r *http.Request) {
 		io.WriteString(rw, "pong")
 	})
+
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/book", nil)
 	mux.ServeHTTP(rw, req)
@@ -61,5 +62,12 @@ func TestMux(t *testing.T) {
 	mux.ServeHTTP(rw1, req)
 	if code := rw1.Result().StatusCode; code != http.StatusOK {
 		t.Errorf("expect 200 status code, got %v", code)
+	}
+
+	rw2 := httptest.NewRecorder()
+	req, _ = http.NewRequest(http.MethodPost, "/ping", nil)
+	mux.ServeHTTP(rw2, req)
+	if code := rw2.Result().StatusCode; code != http.StatusMethodNotAllowed {
+		t.Errorf("expect 405 status code, got %v", code)
 	}
 }
