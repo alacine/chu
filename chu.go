@@ -88,7 +88,10 @@ func (m *Mux) Head(path string, handle func(http.ResponseWriter, *http.Request))
 // 如果找不到路径，handle 为 nil，c 为 1
 // 如果找到路径，但对应的 HTTP Method 为 nil，则返回 handle 为 nil，c 为 2
 func (m *Mux) getHandleFunc(method, path string) (http.HandlerFunc, int) {
-	segs := strings.Split(path, "/")
+	segs, err := pathToSegs(path)
+	if err != nil {
+		return nil, 3
+	}
 	idx := getLastMatchedNodeIdx(segs, m.nodes, m.next)
 	mCode := methodMap[method]
 	lastNode := m.nodes[idx]
@@ -113,6 +116,12 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w,
 			http.StatusText(http.StatusMethodNotAllowed),
 			http.StatusMethodNotAllowed,
+		)
+	case 3:
+		http.Error(
+			w,
+			http.StatusText(http.StatusBadRequest),
+			http.StatusBadRequest,
 		)
 	default:
 		handle(w, r)

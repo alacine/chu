@@ -33,6 +33,11 @@ func TestHandle(t *testing.T) {
 			handlefunc: fakeHandler(),
 		},
 		{
+			path:       "/",
+			method:     "GET",
+			handlefunc: fakeHandler(),
+		},
+		{
 			path:       "/api/:name",
 			method:     "GET",
 			handlefunc: fakeHandler(),

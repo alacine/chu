@@ -1,6 +1,7 @@
 package chu
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -69,7 +70,10 @@ func dfs(idx int, allNodes []*node, nex [][]int, printSegs []string) {
 // allNodes: 所有节点
 // nex: 节点邻接表
 func addMethodToNode(method string, path string, handle http.HandlerFunc, allNodes *[]*node, nex *[][]int) {
-	segs := strings.Split(path, "/")
+	segs, err := pathToSegs(path)
+	if err != nil {
+		panic(err)
+	}
 	idx := getLastMatchedNodeIdx(segs, *allNodes, *nex)
 	mCode, ok := methodMap[method]
 	if !ok {
@@ -149,4 +153,32 @@ func isWildcard(seg string) bool {
 		return true
 	}
 	return false
+}
+
+func pathToSegs(path string) ([]string, error) {
+	path, err := trimSlash(path)
+	if err != nil {
+		return nil, err
+	}
+	n := len(path)
+	if n > 0 && path[n-1] == ':' {
+		return nil, errors.New("Invalid path")
+	}
+	for i := 1; i < n; i++ {
+		a, b := path[i-1], path[i]
+		if a == '/' && b == '/' || a == ':' && (b == ':' || b == '/') {
+			return nil, errors.New("Invalid path")
+		}
+	}
+	return strings.Split(path, "/"), nil
+}
+
+func trimSlash(path string) (string, error) {
+	if len(path) == 0 {
+		return "", errors.New("path should not be empty")
+	}
+	if path[0] != '/' {
+		return "", errors.New("path should start with '/'")
+	}
+	return strings.TrimRight(path, "/"), nil
 }
