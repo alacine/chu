@@ -75,17 +75,19 @@ func addMethodToNode(method string, path string, handle http.HandlerFunc, allNod
 	if !ok {
 		panic("No such HTTP Method called: " + method)
 	}
-	if idx == len(segs) && (*allNodes)[idx].allowMethods&mCode != 0 {
-		panic("")
-	}
 	lastNode := (*allNodes)[idx]
+	if lastNode.level == len(segs)-1 && lastNode.allowMethods&mCode != 0 {
+		panic("Already have handle func for " + path + " with " + method)
+	}
 	if (*lastNode).level < len(segs)-1 {
 		// si 是 segs 中第一个不匹配的序号
 		si := lastNode.level + 1
 
 		// 通配符类型节点作为子节点时，该节点只允许有一个子节点
-		if lastNode.wildchild && isWildcard(segs[si]) {
-			panic("conflict between " + path + "and" + strings.Join(segs[:si], "/") + lastNode.seg)
+		if len((*nex)[idx]) != 0 && (lastNode.wildchild || isWildcard(segs[si])) {
+			panic("Conflict between " + path + " and " +
+				strings.Join(segs[:si], "/") + "/" +
+				(*allNodes)[(*nex)[idx][0]].seg)
 		}
 		idx = createNodes(idx, segs[si:], allNodes, nex)
 		lastNode = (*allNodes)[idx]
