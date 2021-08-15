@@ -22,7 +22,6 @@ type Mux struct {
 
 // New return a *Mux
 func New() *Mux {
-	//router := make(map[string]int)
 	cnt := 500
 	nodes := make([]*node, 0, cnt)
 	next := make([][]int, cnt)
@@ -30,7 +29,6 @@ func New() *Mux {
 		next[i] = make([]int, 0, cnt/50)
 	}
 	return &Mux{
-		//routers: router,
 		nodes: nodes,
 		next:  next,
 	}
@@ -39,9 +37,12 @@ func New() *Mux {
 // Show 打印所有可用路由
 func (m *Mux) Show() {
 	fmt.Printf("len(m.nodes): %v\n", len(m.nodes))
-	for _, n := range m.nodes {
+	for i, n := range m.nodes {
+		fmt.Printf("idx(%v): ", i)
 		indent := strings.Repeat("  ", n.level)
-		fmt.Printf("%v%#v allowMethods: %d\n", indent, n.seg, n.allowMethods)
+		fmt.Printf("%v%#v allowMethods: %d, ", indent, n.seg, n.allowMethods)
+		fmt.Printf("n.wildcard: %v, ", n.wildcard)
+		fmt.Printf("n.wildchild: %v\n", n.wildchild)
 	}
 
 	if len(m.nodes) > 0 {
@@ -102,7 +103,6 @@ func (m *Mux) getHandleFunc(method, path string) (http.HandlerFunc, int) {
 
 // ServeHTTP
 func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	//m.Show()
 	method, path := r.Method, r.URL.Path
 	handle, code := m.getHandleFunc(method, path)
 	switch code {

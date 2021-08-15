@@ -22,6 +22,11 @@ func TestHandle(t *testing.T) {
 			handlefunc: fakeHandler(),
 		},
 		{
+			path:       "/api/:name",
+			method:     "GET",
+			handlefunc: fakeHandler(),
+		},
+		{
 			path:       "/api",
 			method:     "POST",
 			handlefunc: fakeHandler(),
@@ -32,7 +37,17 @@ func TestHandle(t *testing.T) {
 			handlefunc: fakeHandler(),
 		},
 		{
-			path:       "/book",
+			path:       "/book/:id/info",
+			method:     "GET",
+			handlefunc: fakeHandler(),
+		},
+		{
+			path:       "/book/:id/info",
+			method:     "POST",
+			handlefunc: fakeHandler(),
+		},
+		{
+			path:       "/book/:id",
 			method:     "DELETE",
 			handlefunc: fakeHandler(),
 		},

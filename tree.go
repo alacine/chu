@@ -57,9 +57,9 @@ func dfs(idx int, allNodes []*node, nex [][]int, printSegs []string) {
 	}
 	for _, i := range nex[idx] {
 		printSegs = append(printSegs, allNodes[i].seg)
-		//l := len(printSegs)
+		l := len(printSegs)
 		dfs(i, allNodes, nex, printSegs)
-		//printSegs = printSegs[:l-1]
+		printSegs = printSegs[:l-1]
 	}
 	printSegs = []string{""}
 }
@@ -79,7 +79,7 @@ func addMethodToNode(method string, path string, handle http.HandlerFunc, allNod
 		panic("")
 	}
 	lastNode := (*allNodes)[idx]
-	if idx < len(segs)-1 {
+	if (*lastNode).level < len(segs)-1 {
 		// si 是 segs 中第一个不匹配的序号
 		si := lastNode.level + 1
 
@@ -106,7 +106,7 @@ func getLastMatchedNodeIdx(segs []string, allNodes []*node, nex [][]int) int {
 	root := 0
 	que[0] = root
 	si, idx := 1, root
-	for len(que) > 0 {
+	for len(que) > 0 && si < len(segs) {
 		h := que[0]
 		que = que[1:]
 		for _, i := range nex[h] {
@@ -132,12 +132,14 @@ func createNodes(from int, segs []string, allNodes *[]*node, nex *[][]int) int {
 			wildcard: isWild,
 			level:    pre.level + 1,
 		}
+		ti := len(*allNodes)
 		*allNodes = append(*allNodes, t)
-		(*nex)[from] = append((*nex)[from], len(*allNodes)-1)
+		(*nex)[from] = append((*nex)[from], ti)
 		pre.wildchild = isWild
 		pre = t
+		from = ti
 	}
-	return len(*allNodes) - 1
+	return from
 }
 
 func isWildcard(seg string) bool {
