@@ -41,12 +41,12 @@ type node struct {
 	wildchild    bool
 	level        int
 	allowMethods methodType
-	funcMap      map[methodType]*http.HandlerFunc
+	funcMap      map[methodType]*ChuHandlerFunc
 }
 
 // dfs 按照深度优先顺序打出所有可用路由
-func dfs(idx int, allNodes []*node, nex [][]int, printSegs []string) {
-	if ams := allNodes[idx].allowMethods; ams != 0 {
+func dfs(idx int, nodes []*node, nex [][]int, printSegs []string) {
+	if ams := nodes[idx].allowMethods; ams != 0 {
 		//fmt.Printf("%d %#v %v\n", idx, strings.Join(printSegs, "/"), nex[idx])
 		mList := make([]string, 0, len(methodMap))
 		for k, v := range methodMap {
@@ -57,9 +57,9 @@ func dfs(idx int, allNodes []*node, nex [][]int, printSegs []string) {
 		fmt.Printf("%d %#v %v\n", idx, strings.Join(printSegs, "/"), mList)
 	}
 	for _, i := range nex[idx] {
-		printSegs = append(printSegs, allNodes[i].seg)
+		printSegs = append(printSegs, nodes[i].seg)
 		l := len(printSegs)
-		dfs(i, allNodes, nex, printSegs)
+		dfs(i, nodes, nex, printSegs)
 		printSegs = printSegs[:l-1]
 	}
 	printSegs = []string{""}
@@ -67,19 +67,19 @@ func dfs(idx int, allNodes []*node, nex [][]int, printSegs []string) {
 
 // addMethodNode 添加一个节点
 // path: 完整的注册路径
-// allNodes: 所有节点
+// nodes: 所有节点
 // nex: 节点邻接表
-func addMethodToNode(method string, path string, handle http.HandlerFunc, allNodes *[]*node, nex *[][]int) {
+func addMethodToNode(method string, path string, handle ChuHandlerFunc, nodes *[]*node, nex *[][]int) {
 	segs, err := pathToSegs(path)
 	if err != nil {
 		panic(err)
 	}
-	idx := getLastMatchedNodeIdx(segs, *allNodes, *nex)
+	idx := getLastMatchedNodeIdx(segs, *nodes, *nex)
 	mCode, ok := methodMap[method]
 	if !ok {
 		panic("No such HTTP Method called: " + method)
 	}
-	lastNode := (*allNodes)[idx]
+	lastNode := (*nodes)[idx]
 	if lastNode.level == len(segs)-1 && lastNode.allowMethods&mCode != 0 {
 		panic("Already have handle func for " + path + " with " + method)
 	}
@@ -91,36 +91,35 @@ func addMethodToNode(method string, path string, handle http.HandlerFunc, allNod
 		if len((*nex)[idx]) != 0 && (lastNode.wildchild || isWildcard(segs[si])) {
 			panic("Conflict between " + path + " and " +
 				strings.Join(segs[:si], "/") + "/" +
-				(*allNodes)[(*nex)[idx][0]].seg)
+				(*nodes)[(*nex)[idx][0]].seg)
 		}
-		idx = createNodes(idx, segs[si:], allNodes, nex)
-		lastNode = (*allNodes)[idx]
+		idx = createNodes(idx, segs[si:], nodes, nex)
+		lastNode = (*nodes)[idx]
 	}
 	lastNode.allowMethods |= mCode
 	if lastNode.funcMap == nil {
-		lastNode.funcMap = make(map[methodType]*http.HandlerFunc)
+		lastNode.funcMap = make(map[methodType]*ChuHandlerFunc)
 	}
 	lastNode.funcMap[mCode] = &handle
 }
 
 // getLastMatchedNodeIdx 返回最后一个匹配的节点
-func getLastMatchedNodeIdx(segs []string, allNodes []*node, nex [][]int) int {
+func getLastMatchedNodeIdx(segs []string, nodes []*node, nex [][]int) int {
 	if len(segs) == 0 {
 		return 0
 	}
-	que := make([]int, 1)
-	root := 0
-	que[0] = root
-	si, idx := 1, root
-	for len(que) > 0 && si < len(segs) {
-		h := que[0]
-		que = que[1:]
-		for _, i := range nex[h] {
-			if allNodes[i].seg == segs[si] {
-				que = append(que, i)
+	// a, b 只是 si 和 idx 的一个备份，用来检测 si 和 idx 是否发生变化
+	si, idx, a, b := 1, 0, 1, 0
+	for si < len(segs) {
+		a, b = si, idx
+		for _, i := range nex[idx] {
+			if nodes[i].seg == segs[si] {
 				si, idx = si+1, i
 				break
 			}
+		}
+		if a == si || b == idx {
+			break
 		}
 	}
 	return idx
@@ -129,8 +128,8 @@ func getLastMatchedNodeIdx(segs []string, allNodes []*node, nex [][]int) int {
 // createNodes 在某一节点后创建新的节点链，并且返回最后一个节点的编号
 // from: 第一个不匹配的节点编号
 // segs: 需要新添加的段
-func createNodes(from int, segs []string, allNodes *[]*node, nex *[][]int) int {
-	pre := (*allNodes)[from]
+func createNodes(from int, segs []string, nodes *[]*node, nex *[][]int) int {
+	pre := (*nodes)[from]
 	for _, seg := range segs {
 		isWild := isWildcard(seg)
 		t := &node{
@@ -138,8 +137,8 @@ func createNodes(from int, segs []string, allNodes *[]*node, nex *[][]int) int {
 			wildcard: isWild,
 			level:    pre.level + 1,
 		}
-		ti := len(*allNodes)
-		*allNodes = append(*allNodes, t)
+		ti := len(*nodes)
+		*nodes = append(*nodes, t)
 		(*nex)[from] = append((*nex)[from], ti)
 		pre.wildchild = isWild
 		pre = t
@@ -148,6 +147,7 @@ func createNodes(from int, segs []string, allNodes *[]*node, nex *[][]int) int {
 	return from
 }
 
+// isWildcard 判断是否为通配符类型的节点
 func isWildcard(seg string) bool {
 	if len(seg) > 0 && seg[0] == ':' {
 		return true
@@ -155,6 +155,7 @@ func isWildcard(seg string) bool {
 	return false
 }
 
+// pathToSegs 把路径以斜线 '/' 为分割符号拆成多段
 func pathToSegs(path string) ([]string, error) {
 	path, err := trimSlash(path)
 	if err != nil {
@@ -173,6 +174,7 @@ func pathToSegs(path string) ([]string, error) {
 	return strings.Split(path, "/"), nil
 }
 
+// trimSlash 去掉末尾 '/'
 func trimSlash(path string) (string, error) {
 	if len(path) == 0 {
 		return "", errors.New("path should not be empty")

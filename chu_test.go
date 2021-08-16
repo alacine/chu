@@ -9,8 +9,8 @@ import (
 	"testing"
 )
 
-func fakeHandler() http.HandlerFunc {
-	return func(rw http.ResponseWriter, r *http.Request) {}
+func fakeHandler() ChuHandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request, p *Params) {}
 }
 
 func catchPanic(f func()) (rec interface{}) {
@@ -21,12 +21,14 @@ func catchPanic(f func()) (rec interface{}) {
 	return
 }
 
+type testRouter struct {
+	path, method string
+	handlefunc   func(http.ResponseWriter, *http.Request, *Params)
+}
+
 func TestHandle(t *testing.T) {
 	// 正常的路由注册
-	tests := []struct {
-		path, method string
-		handlefunc   func(http.ResponseWriter, *http.Request)
-	}{
+	tests := []testRouter{
 		{
 			path:       "/api",
 			method:     "GET",
@@ -70,16 +72,13 @@ func TestHandle(t *testing.T) {
 	}
 	mux := New()
 	for _, test := range tests {
+		fmt.Printf("test.method: %v, ", test.method)
+		fmt.Printf("test.path: %v\n", test.path)
 		mux.Handle(test.method, test.path, test.handlefunc)
-		//mux.Show()
 	}
-	mux.Show()
 
 	// 会发生冲突 panic 的路由注册
-	conflictTests := []struct {
-		path, method string
-		handlefunc   func(http.ResponseWriter, *http.Request)
-	}{
+	conflictTests := []testRouter{
 		{
 			path:       "/api/:id",
 			method:     "GET",
@@ -117,10 +116,7 @@ func TestHandle(t *testing.T) {
 	}
 
 	// 会发生重复注册 panic 的路由注册
-	repeatedTests := []struct {
-		path, method string
-		handlefunc   func(http.ResponseWriter, *http.Request)
-	}{
+	repeatedTests := []testRouter{
 		{
 			path:       "/api/:name",
 			method:     "GET",
@@ -143,10 +139,7 @@ func TestHandle(t *testing.T) {
 	}
 
 	// 会发生找不到对应 HTTP Method panic 的路由注册
-	noHTTPMethodTests := []struct {
-		path, method string
-		handlefunc   func(http.ResponseWriter, *http.Request)
-	}{
+	noHTTPMethodTests := []testRouter{
 		{
 			path:       "/api/:name",
 			method:     "GETT",
@@ -172,8 +165,11 @@ func TestHandle(t *testing.T) {
 
 func TestMux(t *testing.T) {
 	mux := New()
-	mux.Handle("GET", "/ping", func(rw http.ResponseWriter, r *http.Request) {
+	mux.Handle("GET", "/ping/:id/info/:name", func(rw http.ResponseWriter, r *http.Request, p *Params) {
 		io.WriteString(rw, "pong")
+		for k := range *p {
+			t.Log(k, p.ByName(k))
+		}
 	})
 
 	rw := httptest.NewRecorder()
@@ -183,10 +179,10 @@ func TestMux(t *testing.T) {
 		t.Errorf("expect 404 status code, got %v", code)
 	}
 
-	rw1 := httptest.NewRecorder()
-	req, _ = http.NewRequest(http.MethodGet, "/ping", nil)
-	mux.ServeHTTP(rw1, req)
-	if code := rw1.Result().StatusCode; code != http.StatusOK {
+	rw = httptest.NewRecorder()
+	req, _ = http.NewRequest(http.MethodGet, "/ping/abc/info/hah", nil)
+	mux.ServeHTTP(rw, req)
+	if code := rw.Result().StatusCode; code != http.StatusOK {
 		t.Errorf("expect 200 status code, got %v", code)
 	}
 
