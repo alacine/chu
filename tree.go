@@ -156,6 +156,7 @@ func isWildcard(seg string) bool {
 }
 
 // pathToSegs 把路径以斜线 '/' 为分割符号拆成多段
+// 不允许出现 "//"、":/"、"::"、"/:xxxxx:xxxx/" 这种类型，但未尾可以有 "//"、"///" 等
 func pathToSegs(path string) ([]string, error) {
 	path, err := trimSlash(path)
 	if err != nil {
@@ -165,11 +166,22 @@ func pathToSegs(path string) ([]string, error) {
 	if n > 0 && path[n-1] == ':' {
 		return nil, errors.New("Invalid path")
 	}
+	last := byte('/')
 	for i := 1; i < n; i++ {
 		a, b := path[i-1], path[i]
-		if a == '/' && b == '/' || a == ':' && (b == ':' || b == '/') {
-			return nil, errors.New("Invalid path")
+		if b != ':' && b != '/' {
+			continue
 		}
+		if b == ':' {
+			if last == b {
+				return nil, errors.New("Invalid path")
+			}
+		} else {
+			if a == '/' || a == ':' {
+				return nil, errors.New("Invalid path")
+			}
+		}
+		last = b
 	}
 	return strings.Split(path, "/"), nil
 }

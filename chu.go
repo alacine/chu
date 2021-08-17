@@ -9,6 +9,7 @@ import (
 
 var _ http.Handler = &Mux{}
 
+// URL path 中的参数
 type Params map[string]string
 
 func (ps *Params) ByName(name string) string {
@@ -22,7 +23,7 @@ type Mux struct {
 	// 所有节点
 	nodes []*node // MaxInt16
 
-	// 邻接表，nex[i] = [j1, j2, ... jn] 表示节点 i 可以到达 j1, j2, ... jn
+	// 邻接表，next[i] = [j1, j2, ... jn] 表示节点 i 可以到达 j1, j2, ... jn
 	next [][]int
 
 	// URL 参数池，当从 URL 中获取到参数时，从这里面拿内存来存放参数
@@ -72,7 +73,7 @@ func (m *Mux) Handle(method, path string, handle func(http.ResponseWriter, *http
 		m.nodes = append(m.nodes, &node{seg: "", level: 0})
 	}
 	//m.Show()
-	addMethodToNode(method, path, handle, &m.nodes, &m.next)
+	addMethodToNode(method, path, ChuHandlerFunc(handle), &m.nodes, &m.next)
 }
 
 // Get Handle
@@ -103,7 +104,6 @@ func (m *Mux) Head(path string, handle func(http.ResponseWriter, *http.Request, 
 // findMatchedNode 返回根据 http method 和 URL path 匹配到的节点的编号，
 // 同时获取 URL path 中的参数
 // 与 getLastMatchedNodeIdx 不同，findMatchedNode 支持具体的参数和通配类型节点匹配
-// TODO
 func (m *Mux) findMatchedNodeWithParam(method, path string) (idx int, ps *Params) {
 	path = strings.TrimRight(path, "/")
 	segs := strings.Split(path, "/")

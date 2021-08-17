@@ -2,7 +2,7 @@ package chu
 
 import (
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -72,8 +72,8 @@ func TestHandle(t *testing.T) {
 	}
 	mux := New()
 	for _, test := range tests {
-		fmt.Printf("test.method: %v, ", test.method)
-		fmt.Printf("test.path: %v\n", test.path)
+		t.Logf("test.method: %v, ", test.method)
+		t.Logf("test.path: %v\n", test.path)
 		mux.Handle(test.method, test.path, test.handlefunc)
 	}
 
@@ -164,13 +164,17 @@ func TestHandle(t *testing.T) {
 }
 
 func TestMux(t *testing.T) {
+	p1, p2 := "id", "name"
 	mux := New()
-	mux.Handle("GET", "/ping/:id/info/:name", func(rw http.ResponseWriter, r *http.Request, p *Params) {
-		io.WriteString(rw, "pong")
-		for k := range *p {
-			t.Log(k, p.ByName(k))
-		}
-	})
+	mux.Handle(
+		"GET",
+		"/ping/:"+p1+"/info/:"+p2,
+		func(rw http.ResponseWriter, r *http.Request, p *Params) {
+			fmt.Fprintln(rw, "pong")
+			fmt.Fprintln(rw, p1, p.ByName(p1))
+			fmt.Fprintln(rw, p2, p.ByName(p2))
+		},
+	)
 
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/book", nil)
@@ -178,6 +182,7 @@ func TestMux(t *testing.T) {
 	if code := rw.Result().StatusCode; code != http.StatusNotFound {
 		t.Errorf("expect 404 status code, got %v", code)
 	}
+	defer rw.Result().Body.Close()
 
 	rw = httptest.NewRecorder()
 	req, _ = http.NewRequest(http.MethodGet, "/ping/abc/info/hah", nil)
@@ -185,11 +190,16 @@ func TestMux(t *testing.T) {
 	if code := rw.Result().StatusCode; code != http.StatusOK {
 		t.Errorf("expect 200 status code, got %v", code)
 	}
+	resp, _ := ioutil.ReadAll(rw.Result().Body)
+	respStr := string(resp)
+	if expResp := fmt.Sprintf("%s\n%s %s\n%s %s\n", "pong", p1, "abc", p2, "hah"); respStr != expResp {
+		t.Errorf("expect %#v , got %#v", expResp, respStr)
+	}
 
-	rw2 := httptest.NewRecorder()
+	rw = httptest.NewRecorder()
 	req, _ = http.NewRequest(http.MethodPost, "/ping", nil)
-	mux.ServeHTTP(rw2, req)
-	if code := rw2.Result().StatusCode; code != http.StatusMethodNotAllowed {
+	mux.ServeHTTP(rw, req)
+	if code := rw.Result().StatusCode; code != http.StatusMethodNotAllowed {
 		t.Errorf("expect 405 status code, got %v", code)
 	}
 }
