@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func fakeHandler() func(rw http.ResponseWriter, r *http.Request) {
+func fakeHandlerFunc() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {}
 }
 
@@ -23,7 +23,7 @@ func catchPanic(f func()) (rec interface{}) {
 
 type testRouter struct {
 	path, method string
-	handlefunc   func(http.ResponseWriter, *http.Request)
+	handlefunc   http.HandlerFunc
 }
 
 func TestHandle(t *testing.T) {
@@ -32,42 +32,42 @@ func TestHandle(t *testing.T) {
 		{
 			path:       "/api",
 			method:     "GET",
-			handlefunc: fakeHandler(),
+			handlefunc: fakeHandlerFunc(),
 		},
 		{
 			path:       "/",
 			method:     "GET",
-			handlefunc: fakeHandler(),
+			handlefunc: fakeHandlerFunc(),
 		},
 		{
 			path:       "/api/:name",
 			method:     "GET",
-			handlefunc: fakeHandler(),
+			handlefunc: fakeHandlerFunc(),
 		},
 		{
 			path:       "/api",
 			method:     "POST",
-			handlefunc: fakeHandler(),
+			handlefunc: fakeHandlerFunc(),
 		},
 		{
 			path:       "/book",
 			method:     "GET",
-			handlefunc: fakeHandler(),
+			handlefunc: fakeHandlerFunc(),
 		},
 		{
 			path:       "/book/:id/info",
 			method:     "GET",
-			handlefunc: fakeHandler(),
+			handlefunc: fakeHandlerFunc(),
 		},
 		{
 			path:       "/book/:id/info",
 			method:     "POST",
-			handlefunc: fakeHandler(),
+			handlefunc: fakeHandlerFunc(),
 		},
 		{
 			path:       "/book/:id",
 			method:     "DELETE",
-			handlefunc: fakeHandler(),
+			handlefunc: fakeHandlerFunc(),
 		},
 	}
 	mux := New()
@@ -82,22 +82,22 @@ func TestHandle(t *testing.T) {
 		{
 			path:       "/api/:id",
 			method:     "GET",
-			handlefunc: fakeHandler(),
+			handlefunc: fakeHandlerFunc(),
 		},
 		{
 			path:       "/api/abc",
 			method:     "POST",
-			handlefunc: fakeHandler(),
+			handlefunc: fakeHandlerFunc(),
 		},
 		{
 			path:       "/book/info",
 			method:     "GET",
-			handlefunc: fakeHandler(),
+			handlefunc: fakeHandlerFunc(),
 		},
 		{
 			path:       "/book/:ids",
 			method:     "GET",
-			handlefunc: fakeHandler(),
+			handlefunc: fakeHandlerFunc(),
 		},
 	}
 	conflictPanicReg := regexp.MustCompile(`Conflict between .* and .*`)
@@ -120,7 +120,7 @@ func TestHandle(t *testing.T) {
 		{
 			path:       "/api/:name",
 			method:     "GET",
-			handlefunc: fakeHandler(),
+			handlefunc: fakeHandlerFunc(),
 		},
 	}
 	repeatedPanicReg := regexp.MustCompile(`Already have handle func for .* with .*`)
@@ -143,7 +143,7 @@ func TestHandle(t *testing.T) {
 		{
 			path:       "/api/:name",
 			method:     "GETT",
-			handlefunc: fakeHandler(),
+			handlefunc: fakeHandlerFunc(),
 		},
 	}
 	noMethodPanicReg := regexp.MustCompile(`No such HTTP Method called: .*`)
@@ -166,7 +166,7 @@ func TestHandle(t *testing.T) {
 func TestMux(t *testing.T) {
 	p1, p2 := "id", "name"
 	mux := New()
-	mux.Handle(
+	mux.HandleFunc(
 		"GET",
 		"/ping/:"+p1+"/info/:"+p2,
 		func(rw http.ResponseWriter, r *http.Request) {

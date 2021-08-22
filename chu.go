@@ -33,14 +33,8 @@ import (
 
 var _ http.Handler = &Mux{}
 
-//func (ps *Params) ByName(name string) string {
-//if ps == nil {
-//return ""
-//}
-//return (*ps)[name]
-//}
-
-//type ChuHandlerFunc func(http.ResponseWriter, *http.Request, *Params)
+// Middleware 中间件
+type Middleware func(http.Handler) http.Handler
 
 // Mux 路由
 type Mux struct {
@@ -56,7 +50,7 @@ type Mux struct {
 
 	// TODO
 	// 中间件
-	middlewares []MiddleWare
+	middlewares []Middleware
 }
 
 // New return a *Mux
@@ -96,46 +90,55 @@ func (m *Mux) Show() {
 }
 
 // Handle 注册路由
-func (m *Mux) Handle(method, path string, handle func(http.ResponseWriter, *http.Request)) {
-	handler := http.HandlerFunc(handle)
+func (m *Mux) handle(method, path string, handler http.Handler) {
 	if len(m.nodes) == 0 {
 		m.nodes = append(m.nodes, &node{seg: "", level: 0})
 	}
-	//m.Show()
+	for i := len(m.middlewares) - 1; i >= 0; i-- {
+		handler = m.middlewares[i](handler)
+	}
 	addMethodToNode(method, path, handler, &m.nodes, &m.next)
 }
 
+func (m *Mux) Handle(method, path string, handler http.Handler) {
+	m.handle(method, path, handler)
+}
+
+func (m *Mux) HandleFunc(method, path string, handle http.HandlerFunc) {
+	m.handle(method, path, handle)
+}
+
 // Use 为 Mux 添加中间件
-func (m *Mux) Use(middlewares ...MiddleWare) {
+func (m *Mux) Use(middlewares ...Middleware) {
 	if m.middlewares == nil {
-		m.middlewares = make([]MiddleWare, 0, len(middlewares))
+		m.middlewares = make([]Middleware, 0, len(middlewares))
 	}
 	m.middlewares = append(m.middlewares, middlewares...)
 }
 
-// Get Handle
-func (m *Mux) Get(path string, handle func(http.ResponseWriter, *http.Request)) {
-	m.Handle(http.MethodGet, path, handle)
+// Get HandleFunc
+func (m *Mux) Get(path string, handle http.HandlerFunc) {
+	m.HandleFunc(http.MethodGet, path, handle)
 }
 
-// Post Handle
-func (m *Mux) Post(path string, handle func(http.ResponseWriter, *http.Request)) {
-	m.Handle(http.MethodPost, path, handle)
+// Post HandleFunc
+func (m *Mux) Post(path string, handle http.HandlerFunc) {
+	m.HandleFunc(http.MethodPost, path, handle)
 }
 
-// Delete Handle
-func (m *Mux) Delete(path string, handle func(http.ResponseWriter, *http.Request)) {
-	m.Handle(http.MethodDelete, path, handle)
+// Delete HandleFunc
+func (m *Mux) Delete(path string, handle http.HandlerFunc) {
+	m.HandleFunc(http.MethodDelete, path, handle)
 }
 
-// Put Handle
-func (m *Mux) Put(path string, handle func(http.ResponseWriter, *http.Request)) {
-	m.Handle(http.MethodPut, path, handle)
+// Put HandleFunc
+func (m *Mux) Put(path string, handle http.HandlerFunc) {
+	m.HandleFunc(http.MethodPut, path, handle)
 }
 
-// Head Handle
-func (m *Mux) Head(path string, handle func(http.ResponseWriter, *http.Request)) {
-	m.Handle(http.MethodHead, path, handle)
+// Head HandleFunc
+func (m *Mux) Head(path string, handle http.HandlerFunc) {
+	m.HandleFunc(http.MethodHead, path, handle)
 }
 
 // findMatchedNode 返回根据 http method 和 URL path 匹配到的节点的编号和 Context
