@@ -48,7 +48,6 @@ type Mux struct {
 	// 避免多次分配内存
 	contextPool *sync.Pool
 
-	// TODO
 	// 中间件
 	middlewares []Middleware
 }
