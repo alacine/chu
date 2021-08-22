@@ -17,6 +17,7 @@ func Test_pathToSeg(t *testing.T) {
 		{"should pass", "/", []string{""}},
 		{"should pass", "/book", []string{"", "book"}},
 		{"should pass", "/book/", []string{"", "book"}},
+		{"should pass", "/book/我", []string{"", "book", "我"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

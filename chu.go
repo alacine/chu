@@ -1,3 +1,24 @@
+// Example:
+//  package main
+//
+//  import (
+//  	"fmt"
+//  	"log"
+//  	"net/http"
+//
+//  	"github.com/alacine/chu"
+//  )
+//
+//  func hello(w http.ResponseWriter, r *http.Request, p *chu.Params) {
+//  	name := p.ByName("name")
+//  	fmt.Fprintf(w, "hello, %s\n", name)
+//  }
+//
+//  func main() {
+//  	mux := chu.New()
+//  	mux.Get("/hello/:name", hello)
+//  	log.Fatalln(http.ListenAndServe(":8000", mux))
+//  }
 package chu
 
 import (
@@ -13,6 +34,9 @@ var _ http.Handler = &Mux{}
 type Params map[string]string
 
 func (ps *Params) ByName(name string) string {
+	if ps == nil {
+		return ""
+	}
 	return (*ps)[name]
 }
 
