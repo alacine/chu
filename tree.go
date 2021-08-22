@@ -41,7 +41,7 @@ type node struct {
 	wildchild    bool
 	level        int
 	allowMethods methodType
-	funcMap      map[methodType]*ChuHandlerFunc
+	funcMap      map[methodType]*http.Handler
 }
 
 // dfs 按照深度优先顺序打出所有可用路由
@@ -69,7 +69,7 @@ func dfs(idx int, nodes []*node, nex [][]int, printSegs []string) {
 // path: 完整的注册路径
 // nodes: 所有节点
 // nex: 节点邻接表
-func addMethodToNode(method string, path string, handle ChuHandlerFunc, nodes *[]*node, nex *[][]int) {
+func addMethodToNode(method string, path string, handle http.Handler, nodes *[]*node, nex *[][]int) {
 	segs, err := pathToSegs(path)
 	if err != nil {
 		panic(err)
@@ -98,7 +98,7 @@ func addMethodToNode(method string, path string, handle ChuHandlerFunc, nodes *[
 	}
 	lastNode.allowMethods |= mCode
 	if lastNode.funcMap == nil {
-		lastNode.funcMap = make(map[methodType]*ChuHandlerFunc)
+		lastNode.funcMap = make(map[methodType]*http.Handler)
 	}
 	lastNode.funcMap[mCode] = &handle
 }

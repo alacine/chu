@@ -9,8 +9,8 @@ import (
 	"testing"
 )
 
-func fakeHandler() ChuHandlerFunc {
-	return func(rw http.ResponseWriter, r *http.Request, p *Params) {}
+func fakeHandler() func(rw http.ResponseWriter, r *http.Request) {
+	return func(rw http.ResponseWriter, r *http.Request) {}
 }
 
 func catchPanic(f func()) (rec interface{}) {
@@ -23,7 +23,7 @@ func catchPanic(f func()) (rec interface{}) {
 
 type testRouter struct {
 	path, method string
-	handlefunc   func(http.ResponseWriter, *http.Request, *Params)
+	handlefunc   func(http.ResponseWriter, *http.Request)
 }
 
 func TestHandle(t *testing.T) {
@@ -169,10 +169,10 @@ func TestMux(t *testing.T) {
 	mux.Handle(
 		"GET",
 		"/ping/:"+p1+"/info/:"+p2,
-		func(rw http.ResponseWriter, r *http.Request, p *Params) {
+		func(rw http.ResponseWriter, r *http.Request) {
 			fmt.Fprintln(rw, "pong")
-			fmt.Fprintln(rw, p1, p.ByName(p1))
-			fmt.Fprintln(rw, p2, p.ByName(p2))
+			fmt.Fprintln(rw, p1, URLParam(r, p1))
+			fmt.Fprintln(rw, p2, URLParam(r, p2))
 		},
 	)
 
