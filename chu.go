@@ -88,7 +88,6 @@ func (m *Mux) Show() {
 	}
 }
 
-// Handle 注册路由
 func (m *Mux) handle(method, path string, handler http.Handler) {
 	if len(m.nodes) == 0 {
 		m.nodes = append(m.nodes, &node{seg: "", level: 0})
@@ -99,10 +98,12 @@ func (m *Mux) handle(method, path string, handler http.Handler) {
 	addMethodToNode(method, path, handler, &m.nodes, &m.next)
 }
 
+// Handle 注册路由
 func (m *Mux) Handle(method, path string, handler http.Handler) {
 	m.handle(method, path, handler)
 }
 
+// Handle 注册具体 func
 func (m *Mux) HandleFunc(method, path string, handle http.HandlerFunc) {
 	m.handle(method, path, handle)
 }

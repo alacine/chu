@@ -9,7 +9,8 @@ import (
 // TODO
 func LogMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Get new request from %v", r.Host)
+		reqID := GetRequestID(r.Context())
+		log.Printf("%s %s %s", reqID, r.Host, r.URL)
 		next.ServeHTTP(w, r)
 	})
 }
