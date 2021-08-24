@@ -1,0 +1,9 @@
+snippet mwf "Middleware Func" b
+func ${1:MiddlewareName}(next http.Handler) http.Handler {
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		${2}
+		next.ServeHTTP(w, r)
+	})
+	return http.HandlerFunc(fn)
+}
+endsnippet
