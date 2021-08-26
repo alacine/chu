@@ -142,7 +142,7 @@ func (m *Mux) Head(path string, handle http.HandlerFunc) {
 }
 
 // findMatchedNode 返回根据 http method 和 URL path 匹配到的节点的编号和 Context
-// Context 中有从 URL path 中获取的参数
+// Context 中有从 URL path 中获取的参数，如果匹配失败，返回编号为 -1。
 // 与 getLastMatchedNodeIdx 不同，findMatchedNode 支持具体的参数和通配类型节点匹配
 func (m *Mux) findMatchedNode(method, path string) (idx int, ctx *Context) {
 	path = strings.TrimRight(path, "/")
@@ -158,6 +158,8 @@ func (m *Mux) findMatchedNode(method, path string) (idx int, ctx *Context) {
 		a, b = si, idx
 		for _, i := range m.next[idx] {
 			curNode := m.nodes[i]
+
+			// 如果 URL 中有参数，把参数提取出来放到 Context 中
 			if curNode.wildcard {
 				if ctx == nil {
 					ctx, _ = m.contextPool.Get().(*Context)
@@ -167,11 +169,14 @@ func (m *Mux) findMatchedNode(method, path string) (idx int, ctx *Context) {
 				si, idx = si+1, i
 				break
 			}
+
 			if m.nodes[i].seg == segs[si] {
 				si, idx = si+1, i
 				break
 			}
 		}
+
+		// si, idx 没有变化表示匹配不到
 		if a == si || b == idx {
 			if ctx != nil {
 				m.contextPool.Put(ctx)
@@ -182,18 +187,28 @@ func (m *Mux) findMatchedNode(method, path string) (idx int, ctx *Context) {
 	return idx, ctx
 }
 
+// errCode 内部使用的错误码
+type errCode int
+
+const (
+	_           errCode = iota
+	NOT_FOUND           // 根据 url.Path 找不到对应 Handler
+	NOT_ALLOWED         // url.Path 存在 Handler，但是 http.Method 不对
+)
+
 // getHandler 根据路径和 HTTP Method 匹配方法，同时返回 Context 和匹配状态码
-// 如果找不到路径，返回的 handler 为 nil，状态码为 1
-// 如果找到路径，但对应的 HTTP Method 为 nil，则返回 handle 为 nil，状态码为 2
-func (m *Mux) getHandler(method, path string) (http.Handler, *Context, int) {
+// 如果找不到路径，返回的 handler 为 nil，状态码为 NOT_FOUND
+// 如果找到路径，但对应的 HTTP Method 为 nil，则返回 handle 为 nil，状态码为 NOT_ALLOWED
+func (m *Mux) getHandler(method, path string) (http.Handler, *Context, errCode) {
 	idx, ps := m.findMatchedNode(method, path)
 	if idx == -1 {
-		return nil, ps, 1
+		return nil, ps, NOT_FOUND
 	}
+
 	mCode := methodMap[method]
 	lastNode := m.nodes[idx]
 	if lastNode.allowMethods&mCode == 0 {
-		return nil, ps, 2
+		return nil, ps, NOT_ALLOWED
 	}
 	return *lastNode.funcMap[mCode], ps, 0
 }
@@ -206,20 +221,15 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r = r.WithContext(context.WithValue(r.Context(), ContextKey, ctx))
 		defer m.contextPool.Put(ctx)
 	}
+
 	switch code {
-	case 1:
+	case NOT_FOUND:
 		http.NotFound(w, r)
-	case 2:
+	case NOT_ALLOWED:
 		http.Error(
 			w,
 			http.StatusText(http.StatusMethodNotAllowed),
 			http.StatusMethodNotAllowed,
-		)
-	case 3:
-		http.Error(
-			w,
-			http.StatusText(http.StatusBadRequest),
-			http.StatusBadRequest,
 		)
 	default:
 		handle.ServeHTTP(w, r)
