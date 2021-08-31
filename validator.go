@@ -15,7 +15,8 @@ const (
 func Validate(x interface{}) (bool, error) {
 	pass := true
 	var err error
-	xv, xt := reflect.ValueOf(x), reflect.TypeOf(x)
+	xv := reflect.Indirect(reflect.ValueOf(x))
+	xt := xv.Type()
 	//fmt.Printf("xv: %v\n", xv)
 	//fmt.Printf("xt: %v\n", xt)
 	for i := 0; i < xv.NumField(); i++ {
