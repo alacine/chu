@@ -1,5 +1,7 @@
 # chu
 
+[![Go](https://github.com/alacine/chu/actions/workflows/go.yml/badge.svg)](https://github.com/alacine/chu/actions/workflows/go.yml)
+
 从零开始的 Go Web 框架
 
 - [x] 带参数的路由管理
