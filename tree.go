@@ -33,8 +33,6 @@ var methodMap = map[string]methodType{
 	http.MethodTrace:   mTRACE,
 }
 
-type nodemethods map[uint]*http.HandlerFunc
-
 type node struct {
 	seg          string
 	wildcard     bool
@@ -108,10 +106,10 @@ func getLastMatchedNodeIdx(segs []string, nodes []*node, nex [][]int) int {
 	if len(segs) == 0 {
 		return 0
 	}
-	// a, b 只是 si 和 idx 的一个备份，用来检测 si 和 idx 是否发生变化
-	si, idx, a, b := 1, 0, 1, 0
+	si, idx := 1, 0
 	for si < len(segs) {
-		a, b = si, idx
+		// a, b 只是 si 和 idx 的一个备份，用来检测 si 和 idx 是否发生变化
+		a, b := si, idx
 		for _, i := range nex[idx] {
 			if nodes[i].seg == segs[si] {
 				si, idx = si+1, i

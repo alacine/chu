@@ -103,7 +103,7 @@ func (m *Mux) Handle(method, path string, handler http.Handler) {
 	m.handle(method, path, handler)
 }
 
-// Handle 注册具体 func
+// HandleFunc 注册具体 func
 func (m *Mux) HandleFunc(method, path string, handle http.HandlerFunc) {
 	m.handle(method, path, handle)
 }
@@ -152,10 +152,10 @@ func (m *Mux) findMatchedNode(method, path string) (idx int, ctx *Context) {
 		return 0, nil
 	}
 
-	// a, b 只是 si 和 idx 的一个备份，用来检测 si 和 idx 是否发生变化
-	si, idx, a, b := 1, 0, 1, 0
+	si, idx := 1, 0
 	for si < len(segs) {
-		a, b = si, idx
+		// a, b 只是 si 和 idx 的一个备份，用来检测 si 和 idx 是否发生变化
+		a, b := si, idx
 		for _, i := range m.next[idx] {
 			curNode := m.nodes[i]
 
@@ -190,25 +190,26 @@ func (m *Mux) findMatchedNode(method, path string) (idx int, ctx *Context) {
 // errCode 内部使用的错误码
 type errCode int
 
+// Mux.getHandler 返回的错误码类型
 const (
-	_           errCode = iota
-	NOT_FOUND           // 根据 url.Path 找不到对应 Handler
-	NOT_ALLOWED         // url.Path 存在 Handler，但是 http.Method 不对
+	_          errCode = iota
+	NotFound           // 根据 url.Path 找不到对应 Handler
+	NotAllowed         // url.Path 存在 Handler，但是 http.Method 不对
 )
 
 // getHandler 根据路径和 HTTP Method 匹配方法，同时返回 Context 和匹配状态码
-// 如果找不到路径，返回的 handler 为 nil，状态码为 NOT_FOUND
-// 如果找到路径，但对应的 HTTP Method 为 nil，则返回 handle 为 nil，状态码为 NOT_ALLOWED
+// 如果找不到路径，返回的 handler 为 nil，状态码为 NotFound
+// 如果找到路径，但对应的 HTTP Method 为 nil，则返回 handle 为 nil，状态码为 NotAllowed
 func (m *Mux) getHandler(method, path string) (http.Handler, *Context, errCode) {
 	idx, ps := m.findMatchedNode(method, path)
 	if idx == -1 {
-		return nil, ps, NOT_FOUND
+		return nil, ps, NotFound
 	}
 
 	mCode := methodMap[method]
 	lastNode := m.nodes[idx]
 	if lastNode.allowMethods&mCode == 0 {
-		return nil, ps, NOT_ALLOWED
+		return nil, ps, NotAllowed
 	}
 	return *lastNode.funcMap[mCode], ps, 0
 }
@@ -223,9 +224,9 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch code {
-	case NOT_FOUND:
+	case NotFound:
 		http.NotFound(w, r)
-	case NOT_ALLOWED:
+	case NotAllowed:
 		http.Error(
 			w,
 			http.StatusText(http.StatusMethodNotAllowed),

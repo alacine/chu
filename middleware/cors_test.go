@@ -24,11 +24,11 @@ func TestCorsMiddleware(t *testing.T) {
 	acao := rw.Result().Header.Get("Access-Control-Allow-Origin")
 	acam := rw.Result().Header.Get("Access-Control-Allow-Methods")
 	t.Log(acao, acam)
-	acao_want, acam_want := "*", "GET, POST, DELETE"
-	if acao != acao_want {
-		t.Errorf("expect %v, but get %v", acao_want, acao)
+	acaoWant, acamWant := "*", "GET, POST, DELETE"
+	if acao != acaoWant {
+		t.Errorf("expect %v, but get %v", acaoWant, acao)
 	}
-	if acam != acam_want {
-		t.Errorf("expect %v, but get %v", acam_want, acam)
+	if acam != acamWant {
+		t.Errorf("expect %v, but get %v", acamWant, acam)
 	}
 }
