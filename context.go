@@ -9,7 +9,7 @@ type Params struct {
 	Keys, Values []string
 }
 
-// Context chu 的 Context，目前只存放 URP 参数
+// Context chu 的 Context，目前只存放 URL 参数
 type Context struct {
 
 	// URL path 中的参数
