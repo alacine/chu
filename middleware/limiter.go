@@ -36,15 +36,9 @@ func BurstBucketLimiter(limit int, interval time.Duration) chu.Middleware {
 	bucket := make(chan struct{}, limit)
 	go func() {
 		ticker := time.NewTicker(interval)
-		for {
-			select {
-			case <-ticker.C:
-				select {
-				case bucket <- struct{}{}:
-					//log.Printf("Put a new token")
-				default:
-				}
-			}
+		for range ticker.C {
+			bucket <- struct{}{}
+			//log.Printf("Put a new token")
 		}
 	}()
 	return func(next http.Handler) http.Handler {
